@@ -1,0 +1,55 @@
+name: .NET CI
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        run: dotnet restore SpaceBattle.sln
+
+      - name: Build
+        run: dotnet build SpaceBattle.sln --no-restore --configuration Release
+
+      - name: Test + Coverage (fail if <90%)
+        run: >
+          dotnet test SpaceBattle.sln
+          --no-build
+          --configuration Release
+          /p:CollectCoverage=true
+          /p:CoverletOutput=./TestResults/Coverage/
+          /p:CoverletOutputFormat=cobertura
+          /p:Threshold=90
+          /p:ThresholdType=line
+          /p:ThresholdStat=total
+
+      - name: Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: Generate Coverage Report
+        run: >
+          reportgenerator
+          -reports:**/coverage.cobertura.xml
+          -targetdir:coveragereport
+          -reporttypes:MarkdownSummaryGithub
+
+      - name: Comment Coverage Report in PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: coveragereport/SummaryGithub.md
+          
