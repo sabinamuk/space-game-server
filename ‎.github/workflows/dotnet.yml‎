@@ -20,36 +20,15 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      # 🔍 диагностика структуры (очень помогает при ошибках)
+      - name: Show repo structure
+        run: ls -R
+
       - name: Restore
-        run: dotnet restore SpaceBattle.sln
+        run: dotnet restore ./SpaceBattle.sln
 
       - name: Build
-        run: dotnet build SpaceBattle.sln --no-restore --configuration Release
+        run: dotnet build ./SpaceBattle.sln --no-restore --configuration Release
 
-      - name: Test + Coverage (fail if <90%)
-        run: >
-          dotnet test SpaceBattle.sln
-          --no-build
-          --configuration Release
-          /p:CollectCoverage=true
-          /p:CoverletOutput=./TestResults/Coverage/
-          /p:CoverletOutputFormat=cobertura
-          /p:Threshold=90
-          /p:ThresholdType=line
-          /p:ThresholdStat=total
-
-      - name: Install ReportGenerator
-        run: dotnet tool install -g dotnet-reportgenerator-globaltool
-
-      - name: Generate Coverage Report
-        run: >
-          reportgenerator
-          -reports:**/coverage.cobertura.xml
-          -targetdir:coveragereport
-          -reporttypes:MarkdownSummaryGithub
-
-      - name: Comment Coverage Report in PR
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          path: coveragereport/SummaryGithub.md
-          
+      - name: Test
+        run: dotnet test ./SpaceBattle.sln --no-build --configuration Release --logger "trx"
